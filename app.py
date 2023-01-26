@@ -20,5 +20,13 @@ def get_db_connection():
 
 conn = get_db_connection()
 
+@app.route("/create-account", methods=["POST"])
+def register_user():
+    return
+
+@app.route("/login", methods=["GET"])
+def register_user():
+    return
+
 if __name__ == "__main__":
     app.run()
