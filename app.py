@@ -53,5 +53,21 @@ def add_workout():
     except:
         return "Failed to Add Workout", 500
 
+@app.route("/add-exercise", methods=["POST"])
+def add_exercise():
+    data = request.json
+    username = data['username']
+    exercise_name = data['workout_name']
+    query = """
+            INSERT INTO user_exercises(user_id, exercise_name)
+            VALUES ((SELECT id FROM users WHERE username = %s), %s);
+            """
+    parameters = (username, exercise_name)
+    try:
+        db_insert(query, parameters)
+        return "Exercise Added", 200
+    except:
+        return "Failed to Add Exercise", 500
+
 if __name__ == "__main__":
     app.run()
