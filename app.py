@@ -25,17 +25,33 @@ def user_create_account():
 
 @app.route("/login", methods=["GET"])
 def user_login():
-    data =  request.json
+    data = request.json
     username = data['username']
     password = data['password']
     query = "SELECT hashedpw FROM users WHERE username = %s"
     parameters = (username,)    
-    user_data = db_fetch(query, parameters) 
+    user_data = db_fetch(query, parameters) # do we need a try except here?
     hashed_password = user_data[0]['hashedpw']
     if(bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))):
         return "Access Granted", 200
     else:
         return "Access Denied", 403
+
+@app.route("/add-workout", methods=["POST"])
+def add_workout():
+    data = request.json
+    username = data['username']
+    workout_name = data['workout_name']
+    query = """
+            INSERT INTO user_workouts(user_id, workout_name)
+            VALUES ((SELECT id FROM users WHERE username = %s), %s);
+            """
+    parameters = (username, workout_name)
+    try:
+        db_insert(query, parameters)
+        return "Workout Added", 200
+    except:
+        return "Failed to Add Workout", 500
 
 if __name__ == "__main__":
     app.run()
