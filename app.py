@@ -37,5 +37,9 @@ def user_login():
     else:
         return "Access Denied", 403
 
+@app.route("/add-workout", methods=["POST"])
+def add_workout():
+    return
+
 if __name__ == "__main__":
     app.run()
