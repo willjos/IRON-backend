@@ -42,13 +42,35 @@ def add_workout():
     data = request.json
     username = data['username']
     workout_name = data['workout_name']
-    query = """
+    exercises = data['exercises']
+    query_workouts = """
             INSERT INTO user_workouts(user_id, workout_name)
-            VALUES ((SELECT id FROM users WHERE username = %s), %s);
-            """
-    parameters = (username, workout_name)
+            VALUES ((SELECT id FROM users WHERE username = %s), %s)
+            ON CONFLICT DO NOTHING;
+        """
+    parameters_workouts = (username, workout_name)
     try:
-        db_insert(query, parameters)
+        db_insert(query_workouts, parameters_workouts)
+        for exercise in exercises:
+            query_exercise = """
+                INSERT INTO user_exercises(user_id, exercise_name)
+                VALUES ((SELECT id FROM users WHERE username = %s), %s)
+                ON CONFLICT DO NOTHING;
+            """
+            parameters_exercise = (username, exercise)
+            query_workout_exercises = """
+                INSERT INTO workout_exercises(user_id, exercise_id, workout_id)
+                VALUES (
+                    (SELECT id FROM users WHERE username = %s), 
+                    (SELECT id FROM user_exercises 
+                        WHERE user_id=(SELECT id FROM users WHERE username = %s) AND exercise_name=%s), 
+                    (SELECT id FROM user_workouts 
+                        WHERE user_id=(SELECT id FROM users WHERE username = %s) AND workout_name=%s)
+                );
+            """
+            parameters_workout_exercises = (username, username, exercise, username, workout_name)
+            db_insert(query_exercise, parameters_exercise)
+            db_insert(query_workout_exercises, parameters_workout_exercises)
         return "Workout Added", 200
     except:
         return "Failed to Add Workout", 500
