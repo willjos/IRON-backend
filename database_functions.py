@@ -16,9 +16,9 @@ conn = get_db_connection()
 
 def db_insert(query, parameters):
     if conn != None:
-        with conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor) as cursor:
+        with conn.cursor(cursor_factory = pse.RealDictCursor) as cur:
             try:
-                cursor.execute(query, parameters)
+                cur.execute(query, parameters)
                 conn.commit()
             except:
                 return "Error executing query."
@@ -31,6 +31,19 @@ def db_fetch(query, parameters):
             try:
                 cur.execute(query, parameters)
                 fetched_data = cur.fetchall()
+                return fetched_data
+            except:
+                return "Error executing query."
+    else:
+        return "No connection"
+
+def db_insert_fetch(query, parameters):
+    if conn != None:
+        with conn.cursor(cursor_factory = pse.RealDictCursor) as cur:
+            try:
+                cur.execute(query, parameters)
+                fetched_data = cur.fetchall()
+                conn.commit()
                 return fetched_data
             except:
                 return "Error executing query."
