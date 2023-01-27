@@ -57,7 +57,7 @@ def add_workout():
 def add_exercise():
     data = request.json
     username = data['username']
-    exercise_name = data['workout_name']
+    exercise_name = data['exercise_name']
     query = """
             INSERT INTO user_exercises(user_id, exercise_name)
             VALUES ((SELECT id FROM users WHERE username = %s), %s);
