@@ -90,5 +90,65 @@ def add_exercise():
     except:
         return "Failed to Add Exercise", 500
 
+@app.route("/log-workout", methods=["POST"])
+def log_workout():
+    data = request.json
+    username = data['username']
+    workout_data = data['workout_data']
+    workout_name = workout_data['name']
+    exercise_data = workout_data['exercises']
+    query_workout_log = """
+            INSERT INTO workout_logs(workout_id, logged_at)
+            VALUES (
+                (SELECT id from user_workouts 
+                    WHERE user_id=(SELECT id FROM users WHERE username = %s) AND workout_name=%s), 
+                current_timestamp
+            )
+            RETURNING id;
+        """
+    parameters_workout_log = (username, workout_name)
+    try:
+        workout_log_fetch = db_insert_fetch(query_workout_log, parameters_workout_log)
+        workout_log_id = workout_log_fetch[0]['id']
+        print(workout_log_id)
+        for exercise in exercise_data:
+            for set in exercise['sets']:
+                query_set_log = """
+                        INSERT INTO set_logs(workout_exercise_id, workout_log_id, weight, reps)
+                        VALUES (
+                            (SELECT id FROM workout_exercises 
+                            WHERE exercise_id=(SELECT id from user_exercises 
+                                WHERE user_id=(SELECT id from users WHERE username=%s)
+                                AND exercise_name=%s)
+                            AND workout_id=(SELECT id FROM user_workouts 
+                                WHERE user_id=(SELECT id from users WHERE username=%s)
+                                AND workout_name=%s)), 
+                            %s, %s, %s)
+                    """
+                parameters_set_log = (username, exercise['name'], username, workout_name, workout_log_id, set['weight'], set['reps'])
+                db_insert(query_set_log, parameters_set_log)
+                print('set logged', exercise['name'])
+        return 'Workout Logged', 200
+    except:
+        return 'Failed to Log Workout', 500
+
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
+
+# need workout name property -> string of the name
+# need exercises property -> array of objects
+#   -> each object has a name property and a sets property
+#   name -> string of exercise name
+#   sets -> array of objects
+#           -> each object has a weight property and a reps property
+#           weight -> float
+#           reps -> int
+
+# { 
+#     "username": "will",
+#     "workout_data": {"name": "Push", "exercises": [
+#         {"name":"Bench Press", "sets":[{"weight": 72.5, "reps": 8}, {"weight": 76.5, "reps": 5}]},
+#         {"name":"Tricep Extension", "sets":[{"weight": 32.5, "reps": 12}, {"weight": 27, "reps": 10}]}
+#         ]
+#     }
+# } EXAMPLE /log-workout BODY
