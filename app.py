@@ -2,7 +2,6 @@ from flask import Flask, request
 from flask_cors import CORS
 from database_functions import *
 import bcrypt
-import json
 
 app=Flask(__name__)
 CORS(app)
@@ -136,11 +135,20 @@ def log_workout():
 if __name__ == "__main__":
     app.run(debug=True)
 
-       # need workout name property -> string of the name
-        # need exercises property -> array of objects
-        #   -> each object has a name property and a sets property
-        #   name -> string of exercise name
-        #   sets -> array of objects
-        #           -> each object has a weight property and a reps property
-        #           weight -> float
-        #           reps -> int
+# need workout name property -> string of the name
+# need exercises property -> array of objects
+#   -> each object has a name property and a sets property
+#   name -> string of exercise name
+#   sets -> array of objects
+#           -> each object has a weight property and a reps property
+#           weight -> float
+#           reps -> int
+
+# { 
+#     "username": "will",
+#     "workout_data": {"name": "Push", "exercises": [
+#         {"name":"Bench Press", "sets":[{"weight": 72.5, "reps": 8}, {"weight": 76.5, "reps": 5}]},
+#         {"name":"Tricep Extension", "sets":[{"weight": 32.5, "reps": 12}, {"weight": 27, "reps": 10}]}
+#         ]
+#     }
+# } EXAMPLE /log-workout BODY
