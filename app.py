@@ -8,6 +8,10 @@ CORS(app)
 
 conn = get_db_connection()
 
+@app.route('/', methods=['GET'])
+def homepage():
+    return "IRON backend server"
+
 @app.route("/create-account", methods=["POST"])
 def user_create_account():
     data = request.json
@@ -23,7 +27,7 @@ def user_create_account():
     except:
         return "Failed to Create Account", 500
 
-@app.route("/login", methods=["GET"])
+@app.route("/login", methods=["POST"])
 def user_login():
     data = request.json
     username = data['username']
