@@ -33,12 +33,13 @@ def user_login():
     username = data['username']
     password = data['password']
     query = "SELECT hashedpw FROM users WHERE username = %s"
-    parameters = (username,)    
-    user_data = db_fetch(query, parameters) # do we need a try except here?
-    hashed_password = user_data[0]['hashedpw']
-    if(bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))):
-        return "Access Granted", 200
-    else:
+    parameters = (username,)
+    try:    
+        user_data = db_fetch(query, parameters) # do we need a try except here?
+        hashed_password = user_data[0]['hashedpw']
+        if(bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))):
+            return "Access Granted", 200
+    except:
         return "Access Denied", 403
 
 @app.route("/add-workout", methods=["POST"])
