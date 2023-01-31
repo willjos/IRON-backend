@@ -17,11 +17,8 @@ conn = get_db_connection()
 def db_insert(query, parameters):
     if conn != None:
         with conn.cursor(cursor_factory = pse.RealDictCursor) as cur:
-            try:
-                cur.execute(query, parameters)
-                conn.commit()
-            except:
-                return "Error executing query."
+            cur.execute(query, parameters)
+            conn.commit()
     else:
         return "No connection"
 
