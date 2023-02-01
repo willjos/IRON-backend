@@ -138,6 +138,16 @@ def log_workout():
     except:
         return 'Failed to Log Workout', 500
 
+@app.route("/get-workouts", methods=["GET"])
+def get_workouts():
+    # need to get the workouts for a user and all the exercises associated with it.
+    return
+
+@app.route("/get-exercises", methods=["GET"])
+def get_exercises():
+    #need to get all of the exercises that a user has made.
+    return
+
 if __name__ == "__main__":
     app.run(debug=True)
 
