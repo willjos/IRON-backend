@@ -64,15 +64,16 @@ def add_workout():
             """
             parameters_exercise = (username, exercise)
             query_workout_exercises = """
-                INSERT INTO workout_exercises(exercise_id, workout_id)
+                INSERT INTO workout_exercises(user_id, exercise_id, workout_id)
                 VALUES (
+                    (SELECT id FROM users WHERE username = %s), 
                     (SELECT id FROM user_exercises 
                         WHERE user_id=(SELECT id FROM users WHERE username = %s) AND exercise_name=%s), 
                     (SELECT id FROM user_workouts 
                         WHERE user_id=(SELECT id FROM users WHERE username = %s) AND workout_name=%s)
                 );
             """
-            parameters_workout_exercises = (username, exercise, username, workout_name)
+            parameters_workout_exercises = (username, username, exercise, username, workout_name)
             db_insert(query_exercise, parameters_exercise)
             db_insert(query_workout_exercises, parameters_workout_exercises)
         return "Workout Added", 200
