@@ -140,9 +140,10 @@ def log_workout():
 @app.route("/get-workouts", methods=["GET"])
 def get_workouts():
     username = request.args['username']
-    query = """
-        SELECT 
-        user_workouts.*,
+    query_workouts = "SELECT * FROM user_workouts WHERE user_id=(SELECT user_id FROM users WHERE username=%s);"
+    query_workout_exercises = """
+        SELECT
+        user_workouts.workout_name,
         workout_exercises.workout_exercise_id,
         user_exercises.exercise_id,
         user_exercises.exercise_name
@@ -155,17 +156,19 @@ def get_workouts():
     """
     parameters = (username, )
     try:
-        user_workout_data = db_fetch(query, parameters)
-        user_workout_data_response = {'workouts': {}}
-        for exercise in user_workout_data:
-            if exercise['workout_name'] not in user_workout_data_response['workouts']:
-                user_workout_data_response['workouts'][exercise['workout_name']] = []
-            user_workout_data_response['workouts'][exercise['workout_name']].append(exercise)
+        user_workout_data = db_fetch(query_workouts, parameters)
+        for workout in user_workout_data:
+            workout['exercises'] = []
+        user_exercise_data = db_fetch(query_workout_exercises, parameters)
+        user_workout_data_response = {'workouts': user_workout_data}
+        for exercise in user_exercise_data:
+            workout_names = [workout['workout_name'] for workout in user_workout_data]
+            user_workout_data_response['workouts'][workout_names.index(exercise['workout_name'])]['exercises'].append(exercise)
         return user_workout_data_response, 200
     except:
         return 'Failed to Get Workouts', 500
 
-@app.route("/get-exercises", methods=["GET"]) # not sure this is necessary considering above endpoint gives all info.
+@app.route("/get-exercises", methods=["GET"])
 def get_exercises():
     username = request.args['username']
     query = """
