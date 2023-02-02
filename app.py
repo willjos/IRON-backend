@@ -50,7 +50,7 @@ def add_workout():
     exercises = data['exercises']
     query_workouts = """
             INSERT INTO user_workouts(user_id, workout_name)
-            VALUES ((SELECT id FROM users WHERE username = %s), %s)
+            VALUES ((SELECT user_id FROM users WHERE username = %s), %s)
             ON CONFLICT DO NOTHING;
         """
     parameters_workouts = (username, workout_name)
@@ -59,21 +59,20 @@ def add_workout():
         for exercise in exercises:
             query_exercise = """
                 INSERT INTO user_exercises(user_id, exercise_name)
-                VALUES ((SELECT id FROM users WHERE username = %s), %s)
+                VALUES ((SELECT user_id FROM users WHERE username = %s), %s)
                 ON CONFLICT DO NOTHING;
             """
             parameters_exercise = (username, exercise)
             query_workout_exercises = """
-                INSERT INTO workout_exercises(user_id, exercise_id, workout_id)
+                INSERT INTO workout_exercises(exercise_id, workout_id)
                 VALUES (
-                    (SELECT id FROM users WHERE username = %s), 
-                    (SELECT id FROM user_exercises 
-                        WHERE user_id=(SELECT id FROM users WHERE username = %s) AND exercise_name=%s), 
-                    (SELECT id FROM user_workouts 
-                        WHERE user_id=(SELECT id FROM users WHERE username = %s) AND workout_name=%s)
+                    (SELECT exercise_id FROM user_exercises 
+                        WHERE user_id=(SELECT user_id FROM users WHERE username = %s) AND exercise_name=%s), 
+                    (SELECT workout_id FROM user_workouts 
+                        WHERE user_id=(SELECT user_id FROM users WHERE username = %s) AND workout_name=%s)
                 );
             """
-            parameters_workout_exercises = (username, username, exercise, username, workout_name)
+            parameters_workout_exercises = (username, exercise, username, workout_name)
             db_insert(query_exercise, parameters_exercise)
             db_insert(query_workout_exercises, parameters_workout_exercises)
         return "Workout Added", 200
@@ -87,7 +86,7 @@ def add_exercise():
     exercise_name = data['exercise_name']
     query = """
             INSERT INTO user_exercises(user_id, exercise_name)
-            VALUES ((SELECT id FROM users WHERE username = %s), %s);
+            VALUES ((SELECT user_id FROM users WHERE username = %s), %s);
             """
     parameters = (username, exercise_name)
     try:
@@ -106,28 +105,28 @@ def log_workout():
     query_workout_log = """
             INSERT INTO workout_logs(workout_id, logged_at)
             VALUES (
-                (SELECT id from user_workouts 
-                    WHERE user_id=(SELECT id FROM users WHERE username = %s) AND workout_name=%s), 
+                (SELECT workout_id from user_workouts 
+                    WHERE user_id=(SELECT user_id FROM users WHERE username = %s) AND workout_name=%s), 
                 current_timestamp
             )
-            RETURNING id;
+            RETURNING workout_log_id;
         """
     parameters_workout_log = (username, workout_name)
     try:
         workout_log_fetch = db_insert_fetch(query_workout_log, parameters_workout_log)
-        workout_log_id = workout_log_fetch[0]['id']
+        workout_log_id = workout_log_fetch[0]['workout_log_id']
         print(workout_log_id)
         for exercise in exercise_data:
             for set in exercise['sets']:
                 query_set_log = """
                         INSERT INTO set_logs(workout_exercise_id, workout_log_id, weight, reps)
                         VALUES (
-                            (SELECT id FROM workout_exercises 
-                            WHERE exercise_id=(SELECT id from user_exercises 
-                                WHERE user_id=(SELECT id from users WHERE username=%s)
+                            (SELECT workout_exercise_id FROM workout_exercises 
+                            WHERE exercise_id=(SELECT exercise_id from user_exercises 
+                                WHERE user_id=(SELECT user_id from users WHERE username=%s)
                                 AND exercise_name=%s)
-                            AND workout_id=(SELECT id FROM user_workouts 
-                                WHERE user_id=(SELECT id from users WHERE username=%s)
+                            AND workout_id=(SELECT workout_id FROM user_workouts 
+                                WHERE user_id=(SELECT user_id from users WHERE username=%s)
                                 AND workout_name=%s)), 
                             %s, %s, %s)
                     """
@@ -140,12 +139,16 @@ def log_workout():
 
 @app.route("/get-workouts", methods=["GET"])
 def get_workouts():
-    # need to get the workouts for a user and all the exercises associated with it.
+    username = request.args['username']
+    query_workouts = """"""
+    query_exercises = """"""
+    parameters = (username, )
+    db_fetch()
     return
 
 @app.route("/get-exercises", methods=["GET"])
 def get_exercises():
-    #need to get all of the exercises that a user has made.
+    username = request.args['username']
     return
 
 if __name__ == "__main__":
@@ -168,3 +171,12 @@ if __name__ == "__main__":
 #         ]
 #     }
 # } EXAMPLE /log-workout BODY
+
+"""
+SELECT user_workout_exercises. FROM (user_workouts JOIN workout_exercises 
+ON user_workouts.id = workout_exercises.workout_id
+AS user_workout_exercises)
+JOIN user_exercises 
+ON user_workout_exercises.exercise_id = user_exercises.id 
+WHERE user_exercises.user_id = (SELECT id FROM users WHERE username = 'will');
+"""
