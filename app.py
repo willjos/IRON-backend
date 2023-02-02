@@ -35,7 +35,7 @@ def user_login():
     query = "SELECT hashedpw FROM users WHERE username = %s"
     parameters = (username,)
     try:    
-        user_data = db_fetch(query, parameters) # do we need a try except here?
+        user_data = db_fetch(query, parameters)
         hashed_password = user_data[0]['hashedpw']
         if(bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))):
             return "Access Granted", 200
@@ -49,10 +49,10 @@ def add_workout():
     workout_name = data['workout_name']
     exercises = data['exercises']
     query_workouts = """
-            INSERT INTO user_workouts(user_id, workout_name)
-            VALUES ((SELECT user_id FROM users WHERE username = %s), %s)
-            ON CONFLICT DO NOTHING;
-        """
+        INSERT INTO user_workouts(user_id, workout_name)
+        VALUES ((SELECT user_id FROM users WHERE username = %s), %s)
+        ON CONFLICT DO NOTHING;
+    """
     parameters_workouts = (username, workout_name)
     try:
         db_insert(query_workouts, parameters_workouts)
@@ -85,9 +85,9 @@ def add_exercise():
     username = data['username']
     exercise_name = data['exercise_name']
     query = """
-            INSERT INTO user_exercises(user_id, exercise_name)
-            VALUES ((SELECT user_id FROM users WHERE username = %s), %s);
-            """
+        INSERT INTO user_exercises(user_id, exercise_name)
+        VALUES ((SELECT user_id FROM users WHERE username = %s), %s);
+    """
     parameters = (username, exercise_name)
     try:
         db_insert(query, parameters)
@@ -103,14 +103,14 @@ def log_workout():
     workout_name = workout_data['name']
     exercise_data = workout_data['exercises']
     query_workout_log = """
-            INSERT INTO workout_logs(workout_id, logged_at)
-            VALUES (
-                (SELECT workout_id from user_workouts 
-                    WHERE user_id=(SELECT user_id FROM users WHERE username = %s) AND workout_name=%s), 
-                current_timestamp
-            )
-            RETURNING workout_log_id;
-        """
+        INSERT INTO workout_logs(workout_id, logged_at)
+        VALUES (
+            (SELECT workout_id from user_workouts 
+                WHERE user_id=(SELECT user_id FROM users WHERE username = %s) AND workout_name=%s), 
+            current_timestamp
+        )
+        RETURNING workout_log_id;
+    """
     parameters_workout_log = (username, workout_name)
     try:
         workout_log_fetch = db_insert_fetch(query_workout_log, parameters_workout_log)
@@ -119,17 +119,17 @@ def log_workout():
         for exercise in exercise_data:
             for set in exercise['sets']:
                 query_set_log = """
-                        INSERT INTO set_logs(workout_exercise_id, workout_log_id, weight, reps)
-                        VALUES (
-                            (SELECT workout_exercise_id FROM workout_exercises 
-                            WHERE exercise_id=(SELECT exercise_id from user_exercises 
-                                WHERE user_id=(SELECT user_id from users WHERE username=%s)
-                                AND exercise_name=%s)
-                            AND workout_id=(SELECT workout_id FROM user_workouts 
-                                WHERE user_id=(SELECT user_id from users WHERE username=%s)
-                                AND workout_name=%s)), 
-                            %s, %s, %s)
-                    """
+                    INSERT INTO set_logs(workout_exercise_id, workout_log_id, weight, reps)
+                    VALUES (
+                        (SELECT workout_exercise_id FROM workout_exercises 
+                        WHERE exercise_id=(SELECT exercise_id from user_exercises 
+                            WHERE user_id=(SELECT user_id from users WHERE username=%s)
+                            AND exercise_name=%s)
+                        AND workout_id=(SELECT workout_id FROM user_workouts 
+                            WHERE user_id=(SELECT user_id from users WHERE username=%s)
+                            AND workout_name=%s)), 
+                        %s, %s, %s)
+                """
                 parameters_set_log = (username, exercise['name'], username, workout_name, workout_log_id, set['weight'], set['reps'])
                 db_insert(query_set_log, parameters_set_log)
                 print('set logged', exercise['name'])
@@ -140,43 +140,36 @@ def log_workout():
 @app.route("/get-workouts", methods=["GET"])
 def get_workouts():
     username = request.args['username']
-    query_workouts = """"""
-    query_exercises = """"""
+    query = """
+        SELECT 
+        user_workouts.*,
+        workout_exercises.workout_exercise_id,
+        user_exercises.exercise_id,
+        user_exercises.exercise_name
+            FROM user_workouts 
+            JOIN workout_exercises 
+                ON user_workouts.workout_id = workout_exercises.workout_id
+                JOIN user_exercises 
+                    ON workout_exercises.exercise_id = user_exercises.exercise_id 
+                        WHERE user_exercises.user_id = (SELECT user_id FROM users WHERE username = %s);
+    """
     parameters = (username, )
-    db_fetch()
-    return
+    try:
+        user_workout_data = db_fetch(query, parameters)
+        return user_workout_data, 200
+    except:
+        return 'Failed to Get Workouts', 500
 
-@app.route("/get-exercises", methods=["GET"])
+@app.route("/get-exercises", methods=["GET"]) # not sure this is necessary considering above endpoint gives all info.
 def get_exercises():
     username = request.args['username']
-    return
+    query = """
+        SELECT * FROM user_exercises 
+        WHERE user_id = (SELECT user_id FROM users WHERE username = %s);
+    """
+    parameters = (username, )
+    user_exercise_data = db_fetch(query, parameters)
+    return user_exercise_data, 200
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-# need workout name property -> string of the name
-# need exercises property -> array of objects
-#   -> each object has a name property and a sets property
-#   name -> string of exercise name
-#   sets -> array of objects
-#           -> each object has a weight property and a reps property
-#           weight -> float
-#           reps -> int
-
-# { 
-#     "username": "will",
-#     "workout_data": {"name": "Push", "exercises": [
-#         {"name":"Bench Press", "sets":[{"weight": 72.5, "reps": 8}, {"weight": 76.5, "reps": 5}]},
-#         {"name":"Tricep Extension", "sets":[{"weight": 32.5, "reps": 12}, {"weight": 27, "reps": 10}]}
-#         ]
-#     }
-# } EXAMPLE /log-workout BODY
-
-"""
-SELECT user_workout_exercises. FROM (user_workouts JOIN workout_exercises 
-ON user_workouts.id = workout_exercises.workout_id
-AS user_workout_exercises)
-JOIN user_exercises 
-ON user_workout_exercises.exercise_id = user_exercises.id 
-WHERE user_exercises.user_id = (SELECT id FROM users WHERE username = 'will');
-"""
