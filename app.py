@@ -156,7 +156,12 @@ def get_workouts():
     parameters = (username, )
     try:
         user_workout_data = db_fetch(query, parameters)
-        return user_workout_data, 200
+        user_workout_data_response = {'workouts': {}}
+        for exercise in user_workout_data:
+            if exercise['workout_name'] not in user_workout_data_response['workouts']:
+                user_workout_data_response['workouts'][exercise['workout_name']] = []
+            user_workout_data_response['workouts'][exercise['workout_name']].append(exercise)
+        return user_workout_data_response, 200
     except:
         return 'Failed to Get Workouts', 500
 
@@ -173,3 +178,4 @@ def get_exercises():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
