@@ -117,6 +117,8 @@ def log_workout():
         workout_log_id = workout_log_fetch[0]['workout_log_id']
         print(workout_log_id)
         for exercise in exercise_data:
+            if 'sets' not in exercise:
+                exercise['sets'] = []
             for set in exercise['sets']:
                 query_set_log = """
                     INSERT INTO set_logs(workout_exercise_id, workout_log_id, weight, reps)
