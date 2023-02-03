@@ -100,7 +100,7 @@ def log_workout():
     data = request.json
     username = data['username']
     workout_data = data['workout_data']
-    workout_name = workout_data['name']
+    workout_name = workout_data['workout_name']
     exercise_data = workout_data['exercises']
     query_workout_log = """
         INSERT INTO workout_logs(workout_id, logged_at)
@@ -130,9 +130,9 @@ def log_workout():
                             AND workout_name=%s)), 
                         %s, %s, %s)
                 """
-                parameters_set_log = (username, exercise['name'], username, workout_name, workout_log_id, set['weight'], set['reps'])
+                parameters_set_log = (username, exercise['exercise_name'], username, workout_name, workout_log_id, set['weight'], set['reps'])
                 db_insert(query_set_log, parameters_set_log)
-                print('set logged', exercise['name'])
+                print('set logged', exercise['exercise_name'])
         return 'Workout Logged', 200
     except:
         return 'Failed to Log Workout', 500
