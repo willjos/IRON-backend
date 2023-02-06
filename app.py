@@ -214,6 +214,15 @@ def get_history():
         user_history_response[set_log['workout_log_id']].append(set_log)
     return user_history_response, 200
 
+@app.route("/get-prs", methods=["GET"])
+def get_prs():
+    username = request.args["username"]
+    query = """
+    """
+    parameters = (username, )
+    user_prs = db_fetch(query, parameters)
+    return user_prs, 200
+
 if __name__ == "__main__":
     app.run(debug=True)
 
