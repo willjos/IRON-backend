@@ -181,6 +181,39 @@ def get_exercises():
     user_exercise_data = db_fetch(query, parameters)
     return user_exercise_data, 200
 
+@app.route("/get-history", methods=["GET"])
+def get_history():
+    username = request.args['username']
+    query = """
+        SELECT
+        user_workouts.workout_name,
+        workout_logs.workout_id,
+        workout_logs.logged_at,
+        set_logs.*,
+        user_exercises.*
+        FROM user_workouts 
+        JOIN workout_logs 
+        ON user_workouts.workout_id = workout_logs.workout_id
+        JOIN set_logs
+        ON workout_logs.workout_log_id = set_logs.workout_log_id
+        JOIN workout_exercises
+        ON set_logs.workout_exercise_id = workout_exercises.workout_exercise_id
+        JOIN user_exercises
+        ON workout_exercises.exercise_id = user_exercises.exercise_id
+        WHERE user_workouts.user_id = (SELECT user_id FROM users WHERE username = %s);
+    """
+    parameters = (username, )
+    user_history = db_fetch(query, parameters)
+    user_workout_logs = set()
+    user_history_response = {}
+    for set_log in user_history:
+        user_workout_logs.add(set_log['workout_log_id'])
+    for workout_log_id in user_workout_logs:
+        user_history_response[workout_log_id] = []
+    for set_log in user_history:
+        user_history_response[set_log['workout_log_id']].append(set_log)
+    return user_history_response, 200
+
 if __name__ == "__main__":
     app.run(debug=True)
 
