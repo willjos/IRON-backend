@@ -104,11 +104,11 @@ def log_workout():
     exercise_data = workout_data['exercises']
     query_workout_log = """
         INSERT INTO workout_logs(workout_id, logged_at)
-        VALUES (
-            (SELECT workout_id from user_workouts 
+            VALUES (
+                (SELECT workout_id FROM user_workouts 
                 WHERE user_id=(SELECT user_id FROM users WHERE username = %s) AND workout_name=%s), 
-            current_timestamp
-        )
+                current_timestamp
+            )
         RETURNING workout_log_id;
     """
     parameters_workout_log = (username, workout_name)
@@ -154,7 +154,7 @@ def get_workouts():
                 ON user_workouts.workout_id = workout_exercises.workout_id
                 JOIN user_exercises 
                     ON workout_exercises.exercise_id = user_exercises.exercise_id 
-                        WHERE user_exercises.user_id = (SELECT user_id FROM users WHERE username = %s);
+                    WHERE user_exercises.user_id = (SELECT user_id FROM users WHERE username = %s);
     """
     parameters = (username, )
     try:
@@ -178,8 +178,11 @@ def get_exercises():
         WHERE user_id = (SELECT user_id FROM users WHERE username = %s);
     """
     parameters = (username, )
-    user_exercise_data = db_fetch(query, parameters)
-    return user_exercise_data, 200
+    try:
+        user_exercise_data = db_fetch(query, parameters)
+        return user_exercise_data, 200
+    except:
+        return 'Failed to get exercises', 500
 
 @app.route("/get-history", methods=["GET"])
 def get_history():
@@ -191,29 +194,66 @@ def get_history():
         workout_logs.logged_at,
         set_logs.*,
         user_exercises.*
-        FROM user_workouts 
-        JOIN workout_logs 
-        ON user_workouts.workout_id = workout_logs.workout_id
-        JOIN set_logs
-        ON workout_logs.workout_log_id = set_logs.workout_log_id
-        JOIN workout_exercises
-        ON set_logs.workout_exercise_id = workout_exercises.workout_exercise_id
-        JOIN user_exercises
-        ON workout_exercises.exercise_id = user_exercises.exercise_id
-        WHERE user_workouts.user_id = (SELECT user_id FROM users WHERE username = %s);
+            FROM user_workouts 
+            JOIN workout_logs 
+                ON user_workouts.workout_id = workout_logs.workout_id
+                JOIN set_logs
+                    ON workout_logs.workout_log_id = set_logs.workout_log_id
+                    JOIN workout_exercises
+                        ON set_logs.workout_exercise_id = workout_exercises.workout_exercise_id
+                        JOIN user_exercises
+                            ON workout_exercises.exercise_id = user_exercises.exercise_id
+                            WHERE user_workouts.user_id = (SELECT user_id FROM users WHERE username = %s);
     """
     parameters = (username, )
-    user_history = db_fetch(query, parameters)
-    user_workout_logs = set()
-    user_history_response = {}
-    for set_log in user_history:
-        user_workout_logs.add(set_log['workout_log_id'])
-    for workout_log_id in user_workout_logs:
-        user_history_response[workout_log_id] = []
-    for set_log in user_history:
-        user_history_response[set_log['workout_log_id']].append(set_log)
-    return user_history_response, 200
+    try:
+        user_history = db_fetch(query, parameters)
+        user_workout_logs = set()
+        user_history_response = {}
+        for set_log in user_history:
+            user_workout_logs.add(set_log['workout_log_id'])
+        for workout_log_id in user_workout_logs:
+            user_history_response[workout_log_id] = []
+        for set_log in user_history:
+            user_history_response[set_log['workout_log_id']].append(set_log)
+        return user_history_response, 200
+    except:
+        return 'Failed to get history', 500
 
-if __name__ == "__main__":
-    app.run(debug=True)
-
+@app.route("/get-prs", methods=["GET"])
+def get_prs():
+    username = request.args["username"]
+    query = """  
+        SELECT
+        user_workouts.workout_name,
+        workout_logs.workout_id,
+        workout_logs.logged_at,
+        set_logs.*,
+        user_exercises.*
+            FROM user_workouts 
+            JOIN workout_logs 
+                ON user_workouts.workout_id = workout_logs.workout_id
+                JOIN set_logs
+                    ON workout_logs.workout_log_id = set_logs.workout_log_id
+                    JOIN workout_exercises
+                        ON set_logs.workout_exercise_id = workout_exercises.workout_exercise_id
+                        JOIN user_exercises
+                            ON workout_exercises.exercise_id = user_exercises.exercise_id
+                            WHERE user_workouts.user_id = (SELECT user_id FROM users WHERE username = %s)
+                            AND set_logs.weight = ANY(SELECT MAX(weight) FROM set_logs 
+                            JOIN workout_exercises 
+                                ON set_logs.workout_exercise_id = workout_exercises.workout_exercise_id
+                                JOIN user_exercises 
+                                    ON workout_exercises.exercise_id = user_exercises.exercise_id 
+                                    GROUP BY user_exercises.exercise_id);
+    """
+    parameters = (username, )
+    try:
+        user_prs = db_fetch(query, parameters)
+        user_prs_response = {}
+        for pr in user_prs:
+            if pr['exercise_name'] not in user_prs_response:
+                user_prs_response[pr['exercise_name']] = pr
+        return user_prs_response, 200
+    except:
+        return 'Failed to get PRs', 500
