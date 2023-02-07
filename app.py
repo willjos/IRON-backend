@@ -178,8 +178,11 @@ def get_exercises():
         WHERE user_id = (SELECT user_id FROM users WHERE username = %s);
     """
     parameters = (username, )
-    user_exercise_data = db_fetch(query, parameters)
-    return user_exercise_data, 200
+    try:
+        user_exercise_data = db_fetch(query, parameters)
+        return user_exercise_data, 200
+    except:
+        return 'Failed to get exercises', 500
 
 @app.route("/get-history", methods=["GET"])
 def get_history():
@@ -203,16 +206,19 @@ def get_history():
                             WHERE user_workouts.user_id = (SELECT user_id FROM users WHERE username = %s);
     """
     parameters = (username, )
-    user_history = db_fetch(query, parameters)
-    user_workout_logs = set()
-    user_history_response = {}
-    for set_log in user_history:
-        user_workout_logs.add(set_log['workout_log_id'])
-    for workout_log_id in user_workout_logs:
-        user_history_response[workout_log_id] = []
-    for set_log in user_history:
-        user_history_response[set_log['workout_log_id']].append(set_log)
-    return user_history_response, 200
+    try:
+        user_history = db_fetch(query, parameters)
+        user_workout_logs = set()
+        user_history_response = {}
+        for set_log in user_history:
+            user_workout_logs.add(set_log['workout_log_id'])
+        for workout_log_id in user_workout_logs:
+            user_history_response[workout_log_id] = []
+        for set_log in user_history:
+            user_history_response[set_log['workout_log_id']].append(set_log)
+        return user_history_response, 200
+    except:
+        return 'Failed to get history', 500
 
 @app.route("/get-prs", methods=["GET"])
 def get_prs():
@@ -242,9 +248,12 @@ def get_prs():
                                     GROUP BY user_exercises.exercise_id);
     """
     parameters = (username, )
-    user_prs = db_fetch(query, parameters)
-    user_prs_response = {}
-    for pr in user_prs:
-        if pr['exercise_name'] not in user_prs_response:
-            user_prs_response[pr['exercise_name']] = pr
-    return user_prs_response, 200
+    try:
+        user_prs = db_fetch(query, parameters)
+        user_prs_response = {}
+        for pr in user_prs:
+            if pr['exercise_name'] not in user_prs_response:
+                user_prs_response[pr['exercise_name']] = pr
+        return user_prs_response, 200
+    except:
+        return 'Failed to get PRs', 500
